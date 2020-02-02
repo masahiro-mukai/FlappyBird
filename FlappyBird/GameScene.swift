@@ -140,7 +140,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y: self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
-        bird.zPosition = 0
+        bird.zRotation = 0
         
         wallNode.removeAllChildren()
         item1Node.removeAllChildren()
