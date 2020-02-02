@@ -21,8 +21,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     let groundCategory: UInt32 = 1 << 1 // 0...00010
     let wallCategory: UInt32 = 1 << 2 // 0...00100
     let scoreCategory: UInt32 = 1 << 3 // 0...01000
-    let item1Category: UInt32 = 3 << 0 // 0...00011
-    let itemScoreCategory: UInt32 = 3 << 1 //0...00110
+    let item1Category: UInt32 = 1 << 4 // 0...10000
     
     // スコア用
     var score = 0
@@ -78,7 +77,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // スコア用の物体と衝突した
             print("ScoreUp")
             score += 1
-            AudioServicesPlaySystemSound(soundIdBell)
             scoreLabelNode.text = "Score:\(score)"
             
             // ベストスコア更新か確認する
@@ -89,7 +87,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 userDefaults.set(bestScore, forKey: "BEST")
                 userDefaults.synchronize()
             }
-        } else if (contact.bodyA.categoryBitMask & itemScoreCategory) == itemScoreCategory || (contact.bodyB.categoryBitMask & itemScoreCategory) == itemScoreCategory {
+        } else if (contact.bodyA.categoryBitMask & item1Category) == item1Category || (contact.bodyB.categoryBitMask & item1Category) == item1Category {
+            
+            // BodyAがItemの場合　削除
+            if (contact.bodyA.categoryBitMask & item1Category) == item1Category {
+                contact.bodyA.node?.removeFromParent()
+            }
+            
+            // BodyBがItemの場合　削除
+            if (contact.bodyB.categoryBitMask & item1Category) == item1Category {
+                contact.bodyB.node?.removeFromParent()
+            }
+            
             // スコア用の物体と衝突した
             print("ItemScoreUp")
             itemScore += 1
@@ -104,6 +113,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 userDefaults.set(itemBestScore, forKey: "ITEM_BEST")
                 userDefaults.synchronize()
             }
+
         } else {
             // 壁か地面と衝突した
             print("GameOver")
@@ -129,7 +139,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         itemScoreLabelNode.text = "ItemScore:\(itemScore)"
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y: self.frame.size.height * 0.7)
         bird.physicsBody?.velocity = CGVector.zero
-        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory | item1Category
+        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
         bird.zPosition = 0
         
         wallNode.removeAllChildren()
@@ -340,8 +350,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // 衝突のカテゴリー設定
         bird.physicsBody?.categoryBitMask = birdCategory
-        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory | item1Category
-        bird.physicsBody?.contactTestBitMask = groundCategory | wallCategory | item1Category
+        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
+        bird.physicsBody?.contactTestBitMask = groundCategory | wallCategory
         
         // アニメーションを設定
         bird.run(flap)
@@ -390,23 +400,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // itemを作成
             let item1Sprite = SKSpriteNode(texture: item1Texture)
             item1Sprite.position = CGPoint(x: wallSize.width + 10, y: random_y)
-            
-            // 衝突の時に動かないように設定する
-            item1Sprite.physicsBody?.isDynamic = false
-            
-            item1.addChild(item1Sprite)
-            
-            // スコアアップ用のノード
-            let itemScoreNode = SKNode()
-            itemScoreNode.position = CGPoint(x: wallSize.width + 10, y: random_y)
             // スプライトに物理演算を設定する
-            itemScoreNode.physicsBody = SKPhysicsBody(rectangleOf: item1Texture.size())
-            itemScoreNode.physicsBody?.categoryBitMask = self.itemScoreCategory
-            itemScoreNode.physicsBody?.isDynamic = false
-            itemScoreNode.physicsBody?.contactTestBitMask = self.birdCategory
-            
-            item1.addChild(itemScoreNode)
-
+            item1Sprite.physicsBody = SKPhysicsBody(rectangleOf: item1Texture.size())
+            item1Sprite.physicsBody?.isDynamic = false
+            item1Sprite.physicsBody?.categoryBitMask = self.item1Category
+            item1Sprite.physicsBody?.contactTestBitMask = self.birdCategory
+    
+            item1.addChild(item1Sprite)
             item1.run(item1Animation)
 
             self.item1Node.addChild(item1)
@@ -415,7 +415,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // 次の壁作成までの時間待ちのアクションを作成
         let waitAnimation = SKAction.wait(forDuration: 2)
 
-        // 壁を作成->時間待ち->壁を作成を無限に繰り返すアクションを作成
+        // アイテムを作成->時間待ち->アイテムを作成を無限に繰り返すアクションを作成
         let repeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createItem1Animation, waitAnimation]))
 
         self.item1Node.run(repeatForeverAnimation)
